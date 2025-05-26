@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 "srv/ToolChange.srv"
 "srv/ScrewdriverMove.srv"
 "srv/ScrewdriverScrew.srv"
+"srv/SetRegister.srv"
 DEPENDENCIES std_msgs
 )
 

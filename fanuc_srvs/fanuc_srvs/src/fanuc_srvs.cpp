@@ -31,6 +31,7 @@ R[99] de-activate collaborative
 #include <fanuc_srvs_msgs/srv/screwdriver_move.hpp>
 #include <fanuc_srvs_msgs/srv/screwdriver_screw.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <fanuc_srvs_msgs/srv/set_register.hpp>
 
 #include <mutex> 
 
@@ -56,12 +57,17 @@ class FanucSrvs : public rclcpp::Node
                  const std::shared_ptr<fanuc_srvs_msgs::srv::ScrewdriverScrew::Response> response);
     void SdMoveShank(const std::shared_ptr<fanuc_srvs_msgs::srv::ScrewdriverMove::Request> request,
                      const std::shared_ptr<fanuc_srvs_msgs::srv::ScrewdriverMove::Response> response);
+    void SetRegisterCallback(
+                    const std::shared_ptr<fanuc_srvs_msgs::srv::SetRegister::Request> request,
+                    const std::shared_ptr<fanuc_srvs_msgs::srv::SetRegister::Response> response);
+
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr activate_gripper_srv_;
     rclcpp::Service<fanuc_srvs_msgs::srv::GripperMove>::SharedPtr move_gripper_srv_;
     rclcpp::Service<fanuc_srvs_msgs::srv::ToolChange>::SharedPtr tool_change_srv_;
     rclcpp::Service<fanuc_srvs_msgs::srv::ScrewdriverScrew>::SharedPtr sd_screw_srv_;
     rclcpp::Service<fanuc_srvs_msgs::srv::ScrewdriverMove>::SharedPtr sd_move_srv_;
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr deactivate_collab_srv_;
+    rclcpp::Service<fanuc_srvs_msgs::srv::SetRegister>::SharedPtr set_register_srv_;
 
 };
 
@@ -88,6 +94,10 @@ FanucSrvs::FanucSrvs(): Node("fanuc_srvs")
   sd_move_srv_ = create_service<fanuc_srvs_msgs::srv::ScrewdriverMove>(
       "sd_move", std::bind(&FanucSrvs::SdMoveShank, this,
                               std::placeholders::_1, std::placeholders::_2));
+  set_register_srv_ = create_service<fanuc_srvs_msgs::srv::SetRegister>(
+      "set_register", std::bind(&FanucSrvs::SetRegisterCallback, this,
+                              std::placeholders::_1, std::placeholders::_2));
+
 
   EIP_driver_.reset( new fanuc_eth_ip (robot_ip) );
   RCLCPP_INFO_STREAM(this->get_logger(),"Initialized EIP driver at ip: " << robot_ip );
@@ -186,6 +196,19 @@ void FanucSrvs::DeActivateCollab(
   gripper_activated_=true;
   response->success = true;
 }
+
+
+void FanucSrvs::SetRegisterCallback(
+      const std::shared_ptr<fanuc_srvs_msgs::srv::SetRegister::Request> request,
+      const std::shared_ptr<fanuc_srvs_msgs::srv::SetRegister::Response> response)
+{
+  std::lock_guard<std::mutex> lock(mtx_);
+  EIP_driver_->write_register(request->value, request->register_number);
+  RCLCPP_INFO_STREAM(this->get_logger(),
+    "Set R[" << request->register_number << "] = " << request->value);
+  response->success = true;
+}
+
 
 
 int main(int argc, char * argv[]) 
