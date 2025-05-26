@@ -67,7 +67,7 @@ class FanucSrvs : public rclcpp::Node
 
 FanucSrvs::FanucSrvs(): Node("fanuc_srvs")
 {
-  this->declare_parameter("robot_ip","10.11.31.111");
+  this->declare_parameter("robot_ip","10.163.128.79");
   std::string robot_ip = this->get_parameter("robot_ip").as_string();
 
   activate_gripper_srv_ = create_service<std_srvs::srv::SetBool>(
